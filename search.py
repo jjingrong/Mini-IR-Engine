@@ -1,12 +1,26 @@
-__author__ = 'nellystix'
+__author__ = 'Jing Rong, Jia Le, Nelson'
 
 import nltk
 import sys
 import getopt
 import math
 import heapq
+import xml.etree.ElementTree as ET
 
 # Python script for queries
+
+def remove_stopwords(queryxml):
+    print(queryxml)
+    tree = ET.parse(queryxml)
+    root = tree.getroot()
+
+    for child in root:
+        if child.attrib.get() == 'Abstract':
+            for grandchild in child:
+                abstract_text = grandchild.attrib.get()
+                print abstract_text # test to see what this prints
+            # remove the stopwords
+            # break
 
 def performQueries(allQueries, dictionaryFile, postingsFile, outputFile):
 
@@ -179,4 +193,5 @@ if input_file_q == None or input_file_d == None or input_file_p == None or outpu
     usage()
     sys.exit(2)
 
-performQueries(input_file_q, input_file_d, input_file_p, output_file)
+remove_stopwords(input_file_q)
+#performQueries(input_file_q, input_file_d, input_file_p, output_file)

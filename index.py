@@ -1,4 +1,4 @@
-__author__ = 'nellystix'
+__author__ = 'Jing Rong, Jia Le, Nelson'
 
 import nltk
 import sys
@@ -52,14 +52,15 @@ def corpus_xml_parsing(corpus_doc, corpus_directory): # corpus_doc is the docume
                 else:
                     termdocname_to_termfreq[termdocname] += 1   # Else add one to the frequency
 
+    # Need to write to dictionary.txt
+
+# Indexing the corpus into dictionary.txt
 def corpus_indexing(corpus_path, dictionary_output, postings_output):
 
     corpus_directory = os.listdir(corpus_path)  # Getting the directory of the corpus
 
     for each_file in corpus_directory:
         corpus_xml_parsing(each_file, corpus_directory)    # Parse each XML document
-
-    
 
 
 
