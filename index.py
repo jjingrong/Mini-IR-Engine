@@ -1,20 +1,28 @@
-__author__ = 'Jing Rong, Jia Le, Nelson'
+import collections
+from decimal import Decimal
+import getopt
+import math
+import os
+import sys
 
 import nltk
-import sys
-import getopt
-import os
-import xml.etree.ElementTree as ET
+from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
-import collections
-import math
-from decimal import Decimal
+
+import xml.etree.ElementTree as ET
+
+
+__author__ = 'Jing Rong, Jia Le, Nelson'
+
 
 # Python script for indexing
 
 term_to_docfreq = {}    # Dictionary to map [term.field : document frequency]
 term_to_docposting = collections.defaultdict(list) # Dictionary to map [term.field : list[document posting]]
 termdocname_to_termfreq = {}  # Dictionary to map [(term.field, doc name) : term frequency]
+stemmer = PorterStemmer()
+terms = []
+terms_to_startptr = {}
 
 # To conduct XML parsing for PatSnap corpus
 def corpus_xml_parsing(corpus_doc, corpus_directory): # corpus_doc is the document file (XML file)
@@ -28,12 +36,13 @@ def corpus_xml_parsing(corpus_doc, corpus_directory): # corpus_doc is the docume
     for child in root:
 
         # If the subheading is the title or the abstract
-        if child.tag == 'Title' or child.tag == 'Abstract':
-            child_tokens = set(nltk.word_tokenize(child.text))   # Tokenize the title / abstract
-
-            for token in child_tokens:
-                token = PorterStemmer.stem(token)   # Stem the word
-                term = token + "." + child.tag.lowercase    # No case-folding for the word
+        if child.attrib['name'] == 'Title' or child.attrib['name'] == 'Abstract':
+            child_tokens = set(nltk.word_tokenize(child.text))   # Tokenize the title / abstract # Put in a set to count for doc freq
+            child_tokens_no_stopwords = [w for w in child_tokens if not w in stopwords.words('english')]    # Remove stopwords
+            
+            for token in child_tokens_no_stopwords:
+                token = stemmer.stem(token)   # Stem the word
+                term = token + "." + child.attrib['name'].lower()    # No case-folding for the word # Change the child.tag to abstract / title
 
                 # If term exists within the term dictionary
                 if term in term_to_docfreq:
@@ -41,7 +50,8 @@ def corpus_xml_parsing(corpus_doc, corpus_directory): # corpus_doc is the docume
                 # Else instantiate one copy of it
                 else:
                     term_to_docfreq.setdefault(term, 1)
-
+                    terms.append(term)
+                    
                 # If the document does not exist in the postings dictionary
                 if corpus_doc not in term_to_docposting[term]:
                     term_to_docposting[term].append(corpus_doc) # Add this document to the postings list
@@ -53,16 +63,32 @@ def corpus_xml_parsing(corpus_doc, corpus_directory): # corpus_doc is the docume
                     termdocname_to_termfreq[termdocname] += 1   # Else add one to the frequency
 
     # Need to write to dictionary.txt
-
+    
+    
 # Indexing the corpus into dictionary.txt
 def corpus_indexing(corpus_path, dictionary_output, postings_output):
 
-    corpus_directory = os.listdir(corpus_path)  # Getting the directory of the corpus
+    corpus_list = os.listdir(corpus_path)  # Getting the directory of the corpus
 
-    for each_file in corpus_directory:
-        corpus_xml_parsing(each_file, corpus_directory)    # Parse each XML document
+    for each_file in corpus_list:
+        corpus_xml_parsing(each_file, corpus_path)    # Parse each XML document
 
-
+    # sort the terms
+    terms = sorted(terms)
+ 
+    with open(postings_output, "w+") as p:
+        for term in terms:
+            # to keep track of the start pointer
+            startptr = p.tell()
+            terms_to_startptr[term] = startptr
+ 
+            list_of_docid = term_to_docposting[term]  # list_of_docid is the list of names of the XML file in the corpus
+            
+            for posting in list_of_docid:
+                termDocId = (term, posting)
+                text = str(posting) + " " + str(termsDocId_to_freq[termDocId] * docId_to_cosnormalisation[posting]) + " " # format: docID normalisedtf
+                p.write(text)
+            p.write('\n')
 
 def indexDictAndPosting(inPath, outDictionary, outPostings):
 
@@ -208,4 +234,5 @@ if indexingPath == None or output_file_p == None or output_file_d == None:
 
 dictionaryFileName = output_file_d
 postingFileName = output_file_p
-indexDictAndPosting(indexingPath, dictionaryFileName, postingFileName)
+corpus_indexing(indexingPath, output_file_d, output_file_p)
+#indexDictAndPosting(indexingPath, dictionaryFileName, postingFileName)

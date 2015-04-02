@@ -1,6 +1,7 @@
 __author__ = 'Jing Rong, Jia Le, Nelson'
 
 import nltk
+from nltk.corpus import stopwords
 import sys
 import getopt
 import math
@@ -10,18 +11,21 @@ import xml.etree.ElementTree as ET
 # Python script for queries
 
 def remove_stopwords(queryxml):
-    print(queryxml)
+    
     tree = ET.parse(queryxml)
     root = tree.getroot()
+    
+    # import stopwords
 
     for child in root:
-        if child.attrib.get() == 'Abstract':
-            for grandchild in child:
-                abstract_text = grandchild.attrib.get()
-                print abstract_text # test to see what this prints
-            # remove the stopwords
-            # break
-
+        if child.tag == 'description':
+            abstract_text = child.text
+            no_stopwords_text = [w for w in abstract_text.split() if not w in stopwords.words('english')]
+            no_stopwords_text = no_stopwords_text[3:]   # Remove irrelevant part of the query's abstract (i.e. Relevant documents will describe)
+            break
+    
+    # Do something with query
+    
 def performQueries(allQueries, dictionaryFile, postingsFile, outputFile):
 
     ####################################################################################
