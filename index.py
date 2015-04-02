@@ -23,6 +23,8 @@ termdocname_to_termfreq = {}  # Dictionary to map [(term.field, doc name) : term
 stemmer = PorterStemmer()
 terms = []
 terms_to_startptr = {}
+docid_to_terms = collections.defaultdict(list)  # Dictionary to map [document name : list of terms in document]
+docid_to_cosnorm = {}
 
 # To conduct XML parsing for PatSnap corpus
 def corpus_xml_parsing(corpus_doc, corpus_directory): # corpus_doc is the document file (XML file)
@@ -43,7 +45,11 @@ def corpus_xml_parsing(corpus_doc, corpus_directory): # corpus_doc is the docume
             for token in child_tokens_no_stopwords:
                 token = stemmer.stem(token)   # Stem the word
                 term = token + "." + child.attrib['name'].lower()    # No case-folding for the word # Change the child.tag to abstract / title
-
+                
+                # If this token is not found in the docid_to_terms[doc_id]
+                if token not in docid_to_terms[corpus_doc]:
+                    docid_to_terms[corpus_doc].append(token)
+                
                 # If term exists within the term dictionary
                 if term in term_to_docfreq:
                     term_to_docfreq[term] += 1  # Add one to the frequency
@@ -67,12 +73,28 @@ def corpus_xml_parsing(corpus_doc, corpus_directory): # corpus_doc is the docume
     
 # Indexing the corpus into dictionary.txt
 def corpus_indexing(corpus_path, dictionary_output, postings_output):
-
+    
+    global terms
     corpus_list = os.listdir(corpus_path)  # Getting the directory of the corpus
 
     for each_file in corpus_list:
+        print "Currently indexing: " + str(each_file)
         corpus_xml_parsing(each_file, corpus_path)    # Parse each XML document
-
+        
+    # logarithmic term freq
+    for key, value in termdocname_to_termfreq.iteritems():
+        termdocname_to_termfreq[key] = 1 + math.log10(value)
+        
+    # normalise the tf
+    for doc in docid_to_terms:
+        termslist = docid_to_terms[doc]
+        sum = 0
+        for term in termslist:
+            termDocId = (term, doc)
+            tf_weight = 1 + math.log10(termdocname_to_termfreq[termDocId])
+            sum += pow(tf_weight, 2)
+        docid_to_cosnorm[doc] = 1 / math.sqrt(sum)   # Denominator of cosine
+        
     # sort the terms
     terms = sorted(terms)
  
@@ -86,128 +108,9 @@ def corpus_indexing(corpus_path, dictionary_output, postings_output):
             
             for posting in list_of_docid:
                 termDocId = (term, posting)
-                text = str(posting) + " " + str(termsDocId_to_freq[termDocId] * docId_to_cosnormalisation[posting]) + " " # format: docID normalisedtf
+                text = str(posting) + " " + str(termdocname_to_termfreq[termDocId] * docid_to_cosnorm[posting]) + " " # format: docID normalisedtf
                 p.write(text)
             p.write('\n')
-
-def indexDictAndPosting(inPath, outDictionary, outPostings):
-
-    getList = {}
-    allWords = []
-    allFiles = []
-
-    # To store document length for length normalization
-    documentLength = {}
-
-    # Dictionary to store term -> documentID -> Term frequency
-    termToDictToTermFreq = {}
-
-    # NLTK porter stemmer
-    porterStem = PorterStemmer()
-    directory = os.listdir(inPath)
-    #print(directory)
-
-    # Open directory
-    for f in directory:
-        #filename is each file in the directory
-        print("current file: ")
-        print(f)
-
-        # Ignore hidden files
-        if (not f.startswith('.')):
-            allFiles.append(int(f))
-            # Content now stores each line
-            filename = os.path.join(inPath, f)
-            with open(filename) as fileObj:
-                content = fileObj.readlines()
-
-            # Iterating through each line
-            for sentence in content:
-
-                sentence = sentence.decode('ascii', 'ignore')
-                # tokens store array of words
-                tokens = nltk.word_tokenize(sentence)
-
-                for word in tokens:
-                    # Stem / lower case
-                    word = porterStem.stem(word)
-
-                    # Check if word already exist
-                    # Case 1 : Word exist
-                    if word in allWords:
-                        if int(f) not in getList[word]:
-                            getList[word].append(int(f))
-                            termToDictToTermFreq[word][int(f)] = 1
-                        else:
-                            termToDictToTermFreq[word][int(f)] = termToDictToTermFreq[word][int(f)] + 1
-
-                    # Case 2 : Word does not exist
-                    else:
-                        # puts docID into an array, and point the 'word' as a key to it
-                        getList[word] = []
-                        getList[word].append(int(f))
-                        termToDictToTermFreq[word] = {}
-                        termToDictToTermFreq[word][int(f)] = 1
-                        # Record the word
-                        allWords.append(word)
-
-            totalTemp = 0.0
-            for eachWord in allWords:
-                if int(f) in termToDictToTermFreq[eachWord]:
-                    if termToDictToTermFreq[eachWord][int(f)] > 0:
-                        termFreqWeight = 1 + math.log(termToDictToTermFreq[eachWord][int(f)],10)
-                        totalTemp = totalTemp + math.pow(termFreqWeight, 2)
-
-            fileDocumentLength = math.sqrt(totalTemp)
-            documentLength[int(f)] = fileDocumentLength
-
-
-    # All words are now finished indexing on machine's data structure, time to write them into files
-    # Sort by terms then docID.
-
-    # Sort the word
-    allWords.sort()
-
-    dictionaryOutput = open(outDictionary, 'w')
-    postingOutput = open(outPostings, 'w')
-    for eachWord in allWords:
-        # Write into dictionary file
-
-        # Write word
-        dictionaryOutput.write(eachWord)
-        dictionaryOutput.write(' ')
-        # Write document frequency
-        dictionaryOutput.write(str(len(getList[eachWord])))
-        # Write file cursor/pointer position
-        dictionaryOutput.write(' ')
-        dictionaryOutput.write(str(postingOutput.tell()))
-
-        # Sort docID
-        getList[eachWord].sort()
-
-        #Write into postings file
-        for eachID in getList[eachWord]:
-            postingOutput.write('%s' % eachID)
-            postingOutput.write(',')
-            postingOutput.write(str(termToDictToTermFreq[eachWord][int(eachID)]))
-            postingOutput.write(' ')
-        # New line to seperate word/postings
-        postingOutput.write('\n')
-        dictionaryOutput.write('\n')
-
-    #stubs
-    dictionaryOutput.write('_ ')
-    dictionaryOutput.write('_ ')
-    dictionaryOutput.write(str(postingOutput.tell()))
-
-    allFiles.sort()
-    for eachFile in allFiles:
-        postingOutput.write(str(eachFile))
-
-        # Writing document length of each document....
-        postingOutput.write(',')
-        postingOutput.write(str(Decimal.from_float(documentLength[int(eachFile)])))
-        postingOutput.write(' ')
 
 def usage():
     print "usage: " + sys.argv[0] + " -i path-of-file-for-indexing -d output-dictionary -p output-posting"
@@ -235,4 +138,3 @@ if indexingPath == None or output_file_p == None or output_file_d == None:
 dictionaryFileName = output_file_d
 postingFileName = output_file_p
 corpus_indexing(indexingPath, output_file_d, output_file_p)
-#indexDictAndPosting(indexingPath, dictionaryFileName, postingFileName)
