@@ -1,5 +1,4 @@
 import collections
-from decimal import Decimal
 import getopt
 import math
 import os
@@ -43,30 +42,31 @@ def corpus_xml_parsing(corpus_doc, corpus_directory): # corpus_doc is the docume
             child_tokens_no_stopwords = [w for w in child_tokens if not w in stopwords.words('english')]    # Remove stopwords
             
             for token in child_tokens_no_stopwords:
-                token = stemmer.stem(token)   # Stem the word
-                term = token + "." + child.attrib['name'].lower()    # No case-folding for the word # Change the child.tag to abstract / title
+                if is_ascii(token):
+                    token = stemmer.stem(token)   # Stem the word
+                    term = token + "." + child.attrib['name'].lower()    # No case-folding for the word
                 
-                # If this token is not found in the docid_to_terms[doc_id]
-                if token not in docid_to_terms[corpus_doc]:
-                    docid_to_terms[corpus_doc].append(token)
-                
-                # If term exists within the term dictionary
-                if term in term_to_docfreq:
-                    term_to_docfreq[term] += 1  # Add one to the frequency
-                # Else instantiate one copy of it
-                else:
-                    term_to_docfreq.setdefault(term, 1)
-                    terms.append(term)
+                    # If this token is not found in the docid_to_terms[doc_id]
+                    if term not in docid_to_terms[corpus_doc]:
+                        docid_to_terms[corpus_doc].append(term)
                     
-                # If the document does not exist in the postings dictionary
-                if corpus_doc not in term_to_docposting[term]:
-                    term_to_docposting[term].append(corpus_doc) # Add this document to the postings list
-
-                termdocname = (token, corpus_doc)   # Store the document name as a tuple (token.field, document name)
-                if termdocname not in termdocname_to_termfreq:  # If it does not exist in the data structure
-                    termdocname_to_termfreq.setdefault(termdocname, 1)  # Add to data structure
-                else:
-                    termdocname_to_termfreq[termdocname] += 1   # Else add one to the frequency
+                    # If term exists within the term dictionary
+                    if term in term_to_docfreq:
+                        term_to_docfreq[term] += 1  # Add one to the frequency
+                    # Else instantiate one copy of it
+                    else:
+                        term_to_docfreq.setdefault(term, 1)
+                        terms.append(term)
+                        
+                    # If the document does not exist in the postings dictionary
+                    if corpus_doc not in term_to_docposting[term]:
+                        term_to_docposting[term].append(corpus_doc) # Add this document to the postings list
+    
+                    termdocname = (term, corpus_doc)   # Store the document name as a tuple (token.field, document name)
+                    if termdocname not in termdocname_to_termfreq:  # If it does not exist in the data structure
+                        termdocname_to_termfreq.setdefault(termdocname, 1)  # Add to data structure
+                    else:
+                        termdocname_to_termfreq[termdocname] += 1   # Else add one to the frequency
 
     # Need to write to dictionary.txt
     
@@ -97,7 +97,8 @@ def corpus_indexing(corpus_path, dictionary_output, postings_output):
         
     # sort the terms
     terms = sorted(terms)
- 
+    
+    # To write the postings.txt
     with open(postings_output, "w+") as p:
         for term in terms:
             # to keep track of the start pointer
@@ -108,10 +109,20 @@ def corpus_indexing(corpus_path, dictionary_output, postings_output):
             
             for posting in list_of_docid:
                 termDocId = (term, posting)
-                text = str(posting) + " " + str(termdocname_to_termfreq[termDocId] * docid_to_cosnorm[posting]) + " " # format: docID normalisedtf
-                p.write(text)
+                text = str(posting) + " " + str(termdocname_to_termfreq[termDocId] * docid_to_cosnorm[posting]) + " "
+                p.write(text)   # Writes in the form <Document
             p.write('\n')
+    
+    # To write the dictionary.txt
+    with open(dictionary_output, "w+") as d:
+        for term in terms:
+            # For each term in all the terms
+            text = str(term) + " " + str(term_to_docfreq[term]) + " " + str(terms_to_startptr[term]) + '\n'
+            d.write(text)
 
+def is_ascii(s):
+    return all(ord(c) < 128 for c in s)
+    
 def usage():
     print "usage: " + sys.argv[0] + " -i path-of-file-for-indexing -d output-dictionary -p output-posting"
 
