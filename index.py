@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 
 __author__ = 'Jing Rong, Jia Le, Nelson'
 
-
+# TEST LINE
 # Python script for indexing
 
 term_to_docfreq = {}    # Dictionary to map [term.field : document frequency]
