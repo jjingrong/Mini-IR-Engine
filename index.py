@@ -51,7 +51,7 @@ def corpus_xml_parsing(corpus_doc, corpus_directory): # corpus_doc is the docume
                     term = token
                     doc_dict.append(term)   # Append the term inside the document's local dictionary # Can have multiple same words
                     
-            corpus_dict.append(doc_dict) # Add the local document dictionary to the corpus dictionary
+    corpus_dict.append(doc_dict) # Add the local document dictionary to the corpus dictionary
             
 # Indexing the corpus into dictionary.txt
 def corpus_indexing(corpus_path, dictionary_output, postings_output):
@@ -70,8 +70,9 @@ def corpus_indexing(corpus_path, dictionary_output, postings_output):
     
     corpus = [dictionary.doc2bow(doc) for doc in corpus_dict]
     corpora.MmCorpus.serialize(postings_output, corpus) # Store to disk as postings.txt
-    
-    print corpus_dict.token2id
+    #print(corpus)
+    print (len(corpus))
+    print "Indexing Complete! (:"
 
 def is_ascii(s):
     return all(ord(c) < 128 for c in s)

@@ -1,3 +1,5 @@
+from StdSuites.Type_Names_Suite import null
+from pip._vendor.pkg_resources import null_ns_handler
 __author__ = 'Jing Rong, Jia Le, Nelson'
 
 import nltk
@@ -7,28 +9,56 @@ import getopt
 import math
 import heapq
 import xml.etree.ElementTree as ET
+from nltk.stem.wordnet import WordNetLemmatizer
+from nltk.stem.porter import PorterStemmer
+from gensim import corpora, models, similarities
+
+
 
 # Python script for queries
-
 def remove_stopwords(queryxml):
     
+    lmtzr = WordNetLemmatizer()
+    stemmer = PorterStemmer()
+    
+    no_stopwords_text = []
+
     tree = ET.parse(queryxml)
     root = tree.getroot()
     
     # import stopwords
-
     for child in root:
         if child.tag == 'description':
             abstract_text = child.text
-            no_stopwords_text = [w for w in abstract_text.split() if not w in stopwords.words('english')]
-            no_stopwords_text = no_stopwords_text[3:]   # Remove irrelevant part of the query's abstract (i.e. Relevant documents will describe)
-            break
+            abstract_text = abstract_text.split()
+            for w in abstract_text[4:]: # Remove irrelevant part of the query's abstract (i.e. Relevant documents will describe)
+                if not w in stopwords.words('english'):
+                    w = lmtzr.lemmatize(w)  # Lemmatize the word
+                    w = stemmer.stem(w)  # Stem the word
+                    w.lower()
+                    no_stopwords_text.append(w)
+                    break
     
     # Do something with query
+    dictionary = corpora.Dictionary.load(input_file_d)
+    corpus = corpora.MmCorpus(input_file_p)
+    
+    lsi = models.LsiModel(corpus, id2word=dictionary, num_topics=350)   # Implements Latent Semantic Indexing
+    
+    query = no_stopwords_text
+    vec_bow = dictionary.doc2bow(query)
+    vec_lsi = lsi[vec_bow]  # Coverts query to LSI space
+    
+    index = similarities.MatrixSimilarity(lsi[corpus])  # Transforms corpus to LSI space
+    
+    sims = index[vec_lsi]   # Performs similarity query against the corpus
+    sims = sorted(enumerate(sims), key=lambda item: -item[1])
+    print(sims)
     
 def performQueries(allQueries, dictionaryFile, postingsFile, outputFile):
 
-    ####################################################################################
+   
+    """####################################################################################
     # File processing
     # Get array of lines of dictionary
 
@@ -170,7 +200,7 @@ def getPostingsList(term, dictList, pointerList, postingsFile):
 
     print(term)
     print(postings)
-    return postings
+    return postings"""
 
 def usage():
     print "usage: " + sys.argv[0] + "-d output-dictionary -p output-posting -q input-queries -o output-results"
@@ -198,4 +228,4 @@ if input_file_q == None or input_file_d == None or input_file_p == None or outpu
     sys.exit(2)
 
 remove_stopwords(input_file_q)
-#performQueries(input_file_q, input_file_d, input_file_p, output_file)
+performQueries(input_file_q, input_file_d, input_file_p, output_file)
