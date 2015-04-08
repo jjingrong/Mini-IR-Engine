@@ -1,5 +1,3 @@
-from StdSuites.Type_Names_Suite import null
-from pip._vendor.pkg_resources import null_ns_handler
 __author__ = 'Jing Rong, Jia Le, Nelson'
 
 from nltk.corpus import stopwords

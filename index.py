@@ -1,6 +1,4 @@
-import collections
 import getopt
-import math
 import os
 import sys
 import nltk
@@ -40,7 +38,7 @@ def corpus_xml_parsing(corpus_doc, corpus_directory): # corpus_doc is the docume
             for w in child_tokens:
                 if not w in stopwords.words('english'): # Check if word is not a stopword
                     try:
-                        isInt = int(w)  # Check if word is not a number
+                        isInt = int(w)  # Check if word is not a number. If it is, do nothing with it.
                     except ValueError:
                         child_tokens_no_stopwords.append(w) # Append the word into the list of tokens
                         
@@ -70,8 +68,6 @@ def corpus_indexing(corpus_path, dictionary_output, postings_output):
     
     corpus = [dictionary.doc2bow(doc) for doc in corpus_dict]
     corpora.MmCorpus.serialize(postings_output, corpus) # Store to disk as postings.txt
-    #print(corpus)
-    print (len(corpus))
     print "Indexing Complete! (:"
 
 def is_ascii(s):
