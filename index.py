@@ -68,6 +68,7 @@ def corpus_indexing(corpus_path, dictionary_output, postings_output):
     
     corpus = [dictionary.doc2bow(doc) for doc in corpus_dict]
     corpora.MmCorpus.serialize(postings_output, corpus) # Store to disk as postings.txt
+    
     print "Indexing Complete! (:"
 
 def is_ascii(s):

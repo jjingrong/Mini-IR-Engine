@@ -33,25 +33,47 @@ def remove_stopwords(queryxml):
                     w = stemmer.stem(w)  # Stem the word
                     w.lower()
                     no_stopwords_text.append(w)
-                    break
+            break
     
     # Do something with query
-    dictionary = corpora.Dictionary.load(input_file_d)
-    corpus = corpora.MmCorpus(input_file_p)
+    dictionary = corpora.Dictionary.load(input_file_d)  # Load the dictionary
+    corpus = corpora.MmCorpus(input_file_p) # Load the corpus
     
-    lsi = models.LsiModel(corpus, id2word=dictionary, num_topics=350)   # Implements Latent Semantic Indexing
+    tfidf = models.TfidfModel(corpus, normalize=True)   # Convert vector to TF-IDF weighted scheme
+    corpus_tfidf = tfidf[corpus]    # Applying TF-IDF to the corpus
     
-    query = no_stopwords_text
-    vec_bow = dictionary.doc2bow(query)
-    vec_lsi = lsi[vec_bow]  # Coverts query to LSI space
+    ''' # Getting results via Latent Dirichlet Allocation (LDA)
+    lda = models.LdaModel(corpus=corpus, id2word=dictionary, num_topics=200)   # Setting up Latent Dirichlet Allocation (LDA) model
+    corpus_lda = lda[corpus]  # Applying the LDA model on the corpus (corpus is TF-IDF weighted)
     
-    index = similarities.MatrixSimilarity(lsi[corpus])  # Transforms corpus to LSI space
+    query_for_lda = no_stopwords_text
+    doc_bow = dictionary.doc2bow(query_for_lda)
+    doc_lda = lda[doc_bow]  # Coverts query to LDA space
     
-    sims = index[vec_lsi]   # Performs similarity query against the corpus
-    sims = sorted(enumerate(sims), key=lambda item: -item[1])
-    sims = [item for item in sims if item[1] > 0.01]    # Threshold of 0.01 based on heuristics
+    lda_index = similarities.MatrixSimilarity(corpus_lda)  # Index the corpus into an LDA space
     
-    return sims
+    sims_lda = lda_index[doc_lda]   # Performs similarity query against the indexed LDA space
+    sims_lda = sorted(enumerate(sims_lda), key=lambda item: -item[1])
+    sims_lda = [item[0] for item in sims_lda if item[1] > 0.01]    # Threshold of 0.01 based on heuristics '''
+    
+    # Getting results via Latent Semantic Indexing (LSI)
+    lsi = models.LsiModel(corpus_tfidf, id2word=dictionary, num_topics=300)   # Setting up Latent Semantic Indexing (LSI) model
+    corpus_lsi = lsi[corpus_tfidf]  # Applying the LSI model on the corpus (corpus is TF-IDF weighted) and transform it to a LSI space
+    
+    query_for_lsi = no_stopwords_text
+    doc_bow = dictionary.doc2bow(query_for_lsi)
+    doc_lsi = lsi[doc_bow]  # Converts query to LSI space
+    
+    lsi_index = similarities.MatrixSimilarity(corpus_lsi)   # Index the corpus into an LSI space
+    
+    sims_lsi = lsi_index[doc_lsi]   # Performs similarity query against the indexed LSI space
+    sims_lsi = sorted(enumerate(sims_lsi), key=lambda item: -item[1])
+    sims_lsi = [item for item in sims_lsi if item[1] > 0.01]    # Threshold of 0.01 based on heuristics
+    
+    # sims_lda = set(sims_lda)    # Convert similarity query for LDA space into a set
+    # sims_lsi = set(sims_lsi)    # Convert similarity query for LSI space into a set 
+    
+    return sims_lsi
         
 def performQueries():
     
@@ -62,7 +84,7 @@ def performQueries():
             doc = linecache.getline('patentid.txt', doc_score_pair[0]).rstrip()
             o.write(doc + '\n')
             print str(doc) + " " + str(doc_score_pair[1])
-
+        
 def usage():
     print "usage: " + sys.argv[0] + "-d output-dictionary -p output-posting -q input-queries -o output-results"
 
