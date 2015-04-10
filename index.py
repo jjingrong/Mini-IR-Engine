@@ -1,3 +1,5 @@
+__author__ = 'Jing Rong (A0114395E), Jia Le (A0116673A), Nelson (A0111014J)'
+
 import getopt
 import os
 import sys
@@ -9,8 +11,6 @@ from nltk.stem.porter import PorterStemmer
 from nltk.stem.wordnet import WordNetLemmatizer
 from gensim import corpora, models, similarities
 from collections import defaultdict
-
-__author__ = 'Jing Rong, Jia Le, Nelson'
 
 # Python script for indexing
 
@@ -34,7 +34,7 @@ def corpus_xml_parsing(corpus_doc, corpus_directory): # corpus_doc is the docume
 
         # If the subheading is the title or the abstract
         if child.attrib['name'] == 'Title' or child.attrib['name'] == 'Abstract':
-            child_tokens = set(nltk.word_tokenize(child.text))   # Tokenize the title / abstract # Put in a set to count for doc freq
+            child_tokens = set(nltk.word_tokenize(child.text))   # Tokenize the title / abstract and put in a set to count for doc freq
             child_tokens_no_stopwords = []
             
             for w in child_tokens:
@@ -51,7 +51,7 @@ def corpus_xml_parsing(corpus_doc, corpus_directory): # corpus_doc is the docume
                     term = token
                     doc_dict.append(term)   # Append the term inside the document's local dictionary # Can have multiple same words
         
-        elif child.attrib['name'] == 'IPC Subclass':
+        elif child.attrib['name'] == 'IPC Subclass':    # To retrieve and store the document's IPC subclass into the data structure
             ipc_sc = nltk.word_tokenize(child.text)
             ipc_to_doc[ipc_sc[0]].append(corpus_doc[:-4])
             
@@ -63,23 +63,23 @@ def corpus_indexing(corpus_path, dictionary_output, postings_output):
     global terms
     corpus_list = os.listdir(corpus_path)  # Getting the directory of the corpus
     
-    with open('patentid.txt', "w+") as pid:
+    with open('patentid.txt', "w+") as pid: # Opening the file containing each document ID mapped to a line in the file
         for eachFile in corpus_list:
             eachFileArr = nltk.word_tokenize(str(eachFile))
             each_file = eachFileArr[0]
             print "Currently indexing: " + str(each_file[:-4])
             corpus_xml_parsing(each_file, corpus_path)    # Parse each XML document
-            pid.write(str(each_file[:-4]) + '\n')    # Write patent doc name on each line to patentid.txt
+            pid.write(str(each_file[:-4]) + '\n')    # Write the patent document name (e.g. US12345) on each line to patentid.txt
         
     dictionary = corpora.Dictionary(corpus_dict)
     dictionary.save(dictionary_output)  # Save the dictionary e.g. 'Apple': 0, 'Pear': 1 to dictionary.txt
     
-    corpus = [dictionary.doc2bow(doc) for doc in corpus_dict]
-    corpora.MmCorpus.serialize(postings_output, corpus) # Store to disk as postings.txt
+    corpus = [dictionary.doc2bow(doc) for doc in corpus_dict]   # Turn the dictionary into a bag of words model corpus
+    corpora.MmCorpus.serialize(postings_output, corpus) # Store corpus to disk as postings.txt
     
-    print "Indexing Complete! (:"
+    print "Dictionary and List of Patent Document Indexing Complete! (:"
     
-    # To write IPC Subclass to Document with said subclass
+    # To write IPC Subclass-to-Documents for each subclass
     with open('IPCtoDoc.txt', "w+") as i:
         for each_ipc in ipc_to_doc:
             i.write(str(each_ipc) + ' ')
@@ -87,13 +87,16 @@ def corpus_indexing(corpus_path, dictionary_output, postings_output):
                 i.write(str(each_doc) + ' ')
             i.write('\n')
     
-    print "IPC Mapping Document Complete! (:"
+    print "IPC-to-Document Mapping Complete! (:"
 
 def is_ascii(s):
     return all(ord(c) < 128 for c in s)
     
 def usage():
     print "usage: " + sys.argv[0] + " -i path-of-file-for-indexing -d output-dictionary -p output-posting"
+
+###########################################################################################################
+# MAIN #
 
 indexingPath = output_file_p = output_file_d = None
 

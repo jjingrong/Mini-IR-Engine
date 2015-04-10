@@ -10,16 +10,23 @@ sufficient.
 
 ******** TO BE REMOVED AFTER DONE: add in the stackoverflow references in the reference list below ********
 
-In this assignment, we are using an external library called gensim that helps us in doing topic modelling. 
+Our query system consists of the following components:
 
+1) Breakdown of query into a vector space (bag-of-words model)
+2) Weighted the words in the query via TF-IDF
+3) Modeled the query with Latent Semantic Indexing (http://en.wikipedia.org/wiki/Latent_semantic_indexing)
+4) Ran the query against the LSI space of the indexed, LSI-modeled, TF-IDF weighted corpus
 
-Main points:
-1 uses python library xml.etree.ElementTree to parse XML. will have tree-like data structure, traverse it from root
-2 indexed the <abstract> and <title> of the patent files
-3 lemmatisation / Stemming / Stopwords
-4 gensim, topic modelling library
-5 For query.xml, read in both <title> and <description>. do similarity comparison using gensim
-6 For query, uses TFIDF + LSI. using topic modelling. topic of 350 (forgot what is the official name). Talk about the trial and error with the number of topic
+For this assignment, we utilized an external resource (GenSim) to assist us in the topic modeling of the query, as well as the TF-IDF weighted corpus.
+
+Main Points Of The Query System:
+
+1) Uses Python library xml.etree.ElementTree to parse the XML files. Data parsed will have a tree data structure.
+2) Indexed the <abstract> and <title> of the patent files.
+3) Implemented NLTK library to implement lemmatisation, stemming and removal of stopwords.
+4) Utilized GenSim library for topic modeling, TF-IDF weighting and converting query into a bag-of-words model.
+5) Query XML file utilized both <title> and <description> for the query's bag-of-words model. Used the bag-of-words model to conduct similarity query against the corpus.
+6) In addition, the query utilized TF-IDF and LSI using topic modelling via GenSim. topic of 350 (forgot what is the official name). Talk about the trial and error with the number of topic
 7 the intuition behind our method is top 25 is always inside our result. get the most prominent IPC subclass from the top25. the rest of the patents with this IPC subclass is included
 
 
